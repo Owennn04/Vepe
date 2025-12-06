@@ -1,0 +1,62 @@
+package com.hendra.benerbenerrealalp.service
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.media.RingtoneManager
+import android.os.Build
+import androidx.core.app.NotificationCompat
+import com.hendra.benerbenerrealalp.R // Pastikan import R sesuai package Anda
+import com.hendra.benerbenerrealalp.MainActivity
+
+class TodoAlarmReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        val title = intent.getStringExtra("TODO_TITLE") ?: "Pengingat Tugas"
+        showNotification(context, title)
+    }
+
+    private fun showNotification(context: Context, title: String) {
+        val channelId = "todo_channel"
+        val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+        // 1. Buat Channel Notifikasi (Wajib untuk Android 8+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                "To-Do Reminder",
+                NotificationManager.IMPORTANCE_HIGH // HIGH agar bunyi dan muncul di atas layar
+            ).apply {
+                description = "Channel untuk pengingat tugas"
+                enableVibration(true)
+            }
+            notificationManager.createNotificationChannel(channel)
+        }
+
+        // 2. Intent saat notifikasi diklik (Buka Aplikasi)
+        val contentIntent = Intent(context, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            context, 0, contentIntent, PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // 3. Suara Alarm Default
+        val alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+
+        // 4. Bangun Notifikasi
+        val builder = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_foreground) // Pastikan ikon ini ada
+            .setContentTitle("Waktunya Mengerjakan Tugas!")
+            .setContentText(title)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setSound(alarmSound)
+            .setVibrate(longArrayOf(0, 500, 200, 500)) // Pola getar
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        // ID unik berdasarkan waktu agar notifikasi tidak saling menimpa
+        notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
+    }
+}
